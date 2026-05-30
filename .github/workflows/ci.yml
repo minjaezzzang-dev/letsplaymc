@@ -40,4 +40,5 @@ jobs:
           python-version: "3.12"
       - run: pip install build
       - run: pip install nuitka
-      - run: python -m build
+      - run: pip install zstandard
+      - run: python -m nuitka --standalone --onefile --enable-plugin=tk-inter --include-package=backend --output-dir=dist --clean-cache=all --remove-output ${PWD}/src/main.py
