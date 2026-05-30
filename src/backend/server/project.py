@@ -1,10 +1,11 @@
 import urllib.request
 import json
 import re
+import os
 from pathlib import Path
 from subprocess import run
 
-from path.path import get_java_path, get_server_runner_path
+from path.path import get_git_path, get_java_path, get_server_runner_path
 
 API_URLS = {
     "bukkit": "https://hub.spigotmc.org/versions/",
@@ -294,7 +295,12 @@ def buildtools_server(project: str, version: str, destination: Path):
 
     compile_target = "craftbukkit" if project == "bukkit" else "spigot"
     command = [get_java_path(), "-jar", buildtools.name, "--rev", version, "--compile", compile_target]
-    process = run(command, cwd=build_dir)
+    env = os.environ.copy()
+    git_path = get_git_path()
+    if git_path.exists():
+        env["PATH"] = f"{git_path.parent}{os.pathsep}{env.get('PATH', '')}"
+
+    process = run(command, cwd=build_dir, env=env)
     if process.returncode != 0:
         raise RuntimeError(f"BuildTools failed for {project} {version}")
 

@@ -1,6 +1,8 @@
-from path.path import get_os, get_java_path, get_server_runner_path, UnknownOSError
+from path.path import get_os, get_java_path, get_git_path, UnknownOSError
 import os
 import shutil
+import json
+import urllib.request
 from urllib.request import urlretrieve
 from pathlib import Path
 
@@ -90,4 +92,77 @@ def setup_jdk():
             shutil.rmtree(extract_temp_dir, ignore_errors=True)
 
     print("JDK 21 Setup completed successfully!")
-setup_jdk()
+
+
+def setup_git():
+    git_path = get_git_path()
+    if git_path.exists():
+        print(f"Git already installed at: {git_path}")
+        return
+
+    os_name = get_os()
+    if not os_name.startswith("windows"):
+        if shutil.which("git"):
+            print("System Git already available.")
+            return
+        raise UnknownOSError("Automatic Git download is only configured for Windows.")
+
+    arch = "arm64" if os_name.endswith("arm64") else "64-bit"
+    req = urllib.request.Request(
+        "https://api.github.com/repos/git-for-windows/git/releases/latest",
+        headers={"User-Agent": "letsplaymc-installer/1.0.0 (contact@letsplaymc.local)"},
+    )
+    with urllib.request.urlopen(req) as response:
+        if response.status != 200:
+            raise RuntimeError(f"Failed to fetch Git release. Status: {response.status}")
+        release = json.loads(response.read().decode("utf-8"))
+
+    asset = next(
+        (
+            asset
+            for asset in release.get("assets", [])
+            if asset.get("name", "").startswith("MinGit-")
+            and asset.get("name", "").endswith(f"{arch}.zip")
+            and "busybox" not in asset.get("name", "").lower()
+        ),
+        None,
+    )
+    if asset is None:
+        raise RuntimeError("Could not find a matching MinGit zip in the latest Git for Windows release.")
+
+    git_dir = git_path.parent.parent
+    data_dir = git_dir.parent
+    data_dir.mkdir(parents=True, exist_ok=True)
+    archive_path = data_dir / "mingit.zip"
+    extract_temp_dir = data_dir / "git_temp"
+
+    try:
+        print(f"Downloading Git from: {asset['browser_download_url']}")
+        urlretrieve(asset["browser_download_url"], archive_path)
+
+        if extract_temp_dir.exists():
+            shutil.rmtree(extract_temp_dir, ignore_errors=True)
+        extract_temp_dir.mkdir(parents=True, exist_ok=True)
+
+        print("Extracting Git archive...")
+        shutil.unpack_archive(archive_path, extract_temp_dir)
+
+        if git_dir.exists():
+            shutil.rmtree(git_dir, ignore_errors=True)
+        shutil.move(str(extract_temp_dir), str(git_dir))
+    finally:
+        if archive_path.exists():
+            archive_path.unlink()
+        if extract_temp_dir.exists():
+            shutil.rmtree(extract_temp_dir, ignore_errors=True)
+
+    print("Git Setup completed successfully!")
+
+
+def setup_all():
+    setup_jdk()
+    setup_git()
+
+
+if __name__ == "__main__":
+    setup_all()

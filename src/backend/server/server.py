@@ -8,7 +8,7 @@ import shutil
 from subprocess import Popen, run
 
 
-def create_server(name: str, version: str = "latest", project: str = "paper", eula: bool = False):
+def create_server(name: str, version: str = "latest", project: str = "paper", eula: bool = False, initialize: bool = False):
     project = project.lower()
     dir = Path(get_user_data_path()) / "servers" / name
     if os.path.exists(dir):
@@ -33,6 +33,9 @@ def create_server(name: str, version: str = "latest", project: str = "paper", eu
         process = run([get_java_path(), "-jar", runner.name, "--installServer"], cwd=dir)
         if process.returncode != 0:
             raise RuntimeError(f"Failed to install {project} {version}")
+        return
+
+    if not initialize:
         return
 
     command = [get_java_path(), "-jar", runner.name]

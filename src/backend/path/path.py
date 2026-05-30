@@ -30,5 +30,7 @@ def get_os():
 
 def get_java_path():
     return Path(get_data_dir()) / "java" / "bin" / ("java.exe" if get_os().startswith("windows") else "java")
+def get_git_path():
+    return Path(get_data_dir()) / "git" / "cmd" / ("git.exe" if get_os().startswith("windows") else "git")
 def get_server_runner_path(runner: str):
     return Path(get_data_dir()) / "runners" / f"{runner}.jar"
