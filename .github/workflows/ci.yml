@@ -39,4 +39,5 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install build
+      - run: pip install nuitka
       - run: python -m build
